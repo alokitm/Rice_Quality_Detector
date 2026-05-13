@@ -1,32 +1,90 @@
 # ============================================
-# Rice Quality Detection Web App
+# Rice Quality Detection System
+# Advanced UI Version
 # ============================================
 
-# Streamlit -> web app banane ke liye
 import streamlit as st
-
-# YOLO model
 from ultralytics import YOLO
-
-# Image handling
 from PIL import Image
-
-# OpenCV
 import cv2
-
-# Numpy
 import numpy as np
-
-# Counter for counting rice classes
 from collections import Counter
 
 # ============================================
-# Page Title
+# Page Config
 # ============================================
 
-st.title("Rice Quality Detection System")
+st.set_page_config(
 
-st.write("Upload an image to detect and count rice categories.")
+    page_title="Rice Quality Detector",
+
+    page_icon="🌾",
+
+    layout="wide"
+
+)
+
+# ============================================
+# Custom CSS
+# ============================================
+
+st.markdown("""
+
+<style>
+
+.main {
+
+    background-color: #0E1117;
+
+}
+
+h1 {
+
+    text-align: center;
+
+    color: #00FFAA;
+
+    font-size: 45px;
+
+}
+
+.stMarkdown {
+
+    font-size: 18px;
+
+}
+
+.result-box {
+
+    background-color: #1E1E1E;
+
+    padding: 20px;
+
+    border-radius: 15px;
+
+    border: 1px solid #333;
+
+}
+
+</style>
+
+""", unsafe_allow_html=True)
+
+# ============================================
+# Title
+# ============================================
+
+st.title("🌾 Rice Quality Detection System")
+
+st.markdown(
+
+    "<center>Upload a rice image to detect rice categories and count grains.</center>",
+
+    unsafe_allow_html=True
+
+)
+
+st.write("")
 
 # ============================================
 # Load YOLO Model
@@ -35,12 +93,48 @@ st.write("Upload an image to detect and count rice categories.")
 model = YOLO("best.pt")
 
 # ============================================
+# Sidebar
+# ============================================
+
+st.sidebar.title("About Project")
+
+st.sidebar.info(
+
+    """
+
+This AI model detects:
+
+- Head Rice
+
+- Broken Rice
+
+- Damaged Rice
+
+- Red Rice
+
+- Unhulled Rice
+
+- Foreign Objects
+
+Built using:
+
+- YOLOv8
+
+- Streamlit
+
+- OpenCV
+
+"""
+
+)
+
+# ============================================
 # Upload Image
 # ============================================
 
 uploaded_file = st.file_uploader(
 
-    "Upload Rice Image",
+    "📤 Upload Rice Image",
 
     type=["jpg", "jpeg", "png"]
 
@@ -55,28 +149,51 @@ if uploaded_file is not None:
     # PIL image
     image = Image.open(uploaded_file)
 
-    # Convert image to numpy array
+    # Convert to numpy
     image_np = np.array(image)
 
     # ============================================
-    # Run YOLO Prediction
+    # Create Columns
     # ============================================
 
-    results = model.predict(
-
-        source=image_np,
-
-        conf=0.25
-
-    )
+    col1, col2 = st.columns(2)
 
     # ============================================
-    # Get Annotated Image
+    # Original Image
+    # ============================================
+
+    with col1:
+
+        st.subheader("Original Image")
+
+        st.image(
+
+            image,
+
+            use_container_width=True
+
+        )
+
+    # ============================================
+    # YOLO Prediction
+    # ============================================
+
+    with st.spinner("Detecting Rice Objects..."):
+
+        results = model.predict(
+
+            source=image_np,
+
+            conf=0.25
+
+        )
+
+    # ============================================
+    # Annotated Image
     # ============================================
 
     annotated_frame = results[0].plot()
 
-    # Convert BGR to RGB
     annotated_frame = cv2.cvtColor(
 
         annotated_frame,
@@ -86,21 +203,23 @@ if uploaded_file is not None:
     )
 
     # ============================================
-    # Display Output Image
+    # Show Prediction Image
     # ============================================
 
-    st.image(
+    with col2:
 
-        annotated_frame,
+        st.subheader("Detection Result")
 
-        caption="Detected Rice Objects",
+        st.image(
 
-        use_container_width=True
+            annotated_frame,
 
-    )
+            use_container_width=True
+
+        )
 
     # ============================================
-    # Rice Counting
+    # Counting Classes
     # ============================================
 
     class_names = model.names
@@ -117,15 +236,48 @@ if uploaded_file is not None:
 
         detected_classes.append(class_name)
 
-    # Count classes
     counts = Counter(detected_classes)
 
     # ============================================
-    # Show Counts
+    # Results Section
     # ============================================
 
-    st.subheader("Rice Counts")
+    st.write("")
 
-    for cls, count in counts.items():
+    st.subheader("📊 Detection Summary")
 
-        st.write(f"{cls} : {count}")
+    total_objects = sum(counts.values())
+
+    st.success(f"Total Objects Detected: {total_objects}")
+
+    # ============================================
+    # Metrics
+    # ============================================
+
+    cols = st.columns(len(counts))
+
+    for i, (cls, count) in enumerate(counts.items()):
+
+        cols[i].metric(
+
+            label=cls,
+
+            value=count
+
+        )
+
+    # ============================================
+    # Footer
+    # ============================================
+
+    st.write("")
+
+    st.markdown("---")
+
+    st.markdown(
+
+        "<center>Built with YOLOv8 + Streamlit</center>",
+
+        unsafe_allow_html=True
+
+    )
