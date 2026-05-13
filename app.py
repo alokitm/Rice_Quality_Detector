@@ -1,6 +1,6 @@
 # ============================================
 # Rice Quality Detection System
-# Advanced UI Version
+# Premium UI Version
 # ============================================
 
 import streamlit as st
@@ -9,61 +9,72 @@ from PIL import Image
 import cv2
 import numpy as np
 from collections import Counter
+import matplotlib.pyplot as plt
 
 # ============================================
-# Page Config
+# PAGE CONFIG
 # ============================================
 
 st.set_page_config(
-
-    page_title="Rice Quality Detector",
-
+    page_title="Rice Quality Detection",
     page_icon="🌾",
-
     layout="wide"
-
 )
 
 # ============================================
-# Custom CSS
+# CUSTOM CSS
 # ============================================
 
 st.markdown("""
 
 <style>
 
-.main {
-
-    background-color: #0E1117;
-
+html, body, [class*="css"]  {
+    background-color: #0B1120;
+    color: white;
 }
 
-h1 {
-
+.main-title {
     text-align: center;
-
-    color: #00FFAA;
-
-    font-size: 45px;
-
+    font-size: 55px;
+    font-weight: bold;
+    color: #7CFFB2;
 }
 
-.stMarkdown {
-
-    font-size: 18px;
-
+.subtitle {
+    text-align: center;
+    font-size: 22px;
+    color: #CCCCCC;
+    margin-bottom: 40px;
 }
 
-.result-box {
+.block-container {
+    padding-top: 2rem;
+}
 
-    background-color: #1E1E1E;
-
+.metric-card {
+    background: #111827;
     padding: 20px;
+    border-radius: 20px;
+    text-align: center;
+    border: 1px solid #2D3748;
+}
 
-    border-radius: 15px;
+.metric-title {
+    font-size: 20px;
+    color: #DDDDDD;
+}
 
-    border: 1px solid #333;
+.metric-value {
+    font-size: 40px;
+    font-weight: bold;
+}
 
+.footer-box {
+    background: rgba(0,255,170,0.08);
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid #00FFAA;
 }
 
 </style>
@@ -71,155 +82,109 @@ h1 {
 """, unsafe_allow_html=True)
 
 # ============================================
-# Title
+# TITLE
 # ============================================
-
-st.title("🌾 Rice Quality Detection System")
 
 st.markdown(
-
-    "<center>Upload a rice image to detect rice categories and count grains.</center>",
-
+    "<div class='main-title'>🌾 Rice Quality Detection System</div>",
     unsafe_allow_html=True
-
 )
 
-st.write("")
+st.markdown(
+    "<div class='subtitle'>Upload a rice image to detect rice categories and count grains.</div>",
+    unsafe_allow_html=True
+)
 
 # ============================================
-# Load YOLO Model
+# LOAD MODEL
 # ============================================
 
 model = YOLO("best.pt")
 
 # ============================================
-# Sidebar
+# SIDEBAR
 # ============================================
 
-st.sidebar.title("About Project")
+st.sidebar.title("Project Info")
 
-st.sidebar.info(
+st.sidebar.success("AI Powered Rice Quality Detection")
 
-    """
+st.sidebar.write("Detects:")
 
-This AI model detects:
-
-- Head Rice
-
-- Broken Rice
-
-- Damaged Rice
-
-- Red Rice
-
-- Unhulled Rice
-
-- Foreign Objects
-
-Built using:
-
-- YOLOv8
-
-- Streamlit
-
-- OpenCV
-
-"""
-
-)
+st.sidebar.write("✅ Head Rice")
+st.sidebar.write("✅ Broken Rice")
+st.sidebar.write("✅ Damaged Rice")
+st.sidebar.write("✅ Red Rice")
+st.sidebar.write("✅ Unhulled Rice")
+st.sidebar.write("✅ Foreign Objects")
 
 # ============================================
-# Upload Image
+# FILE UPLOADER
 # ============================================
 
 uploaded_file = st.file_uploader(
-
     "📤 Upload Rice Image",
-
     type=["jpg", "jpeg", "png"]
-
 )
 
 # ============================================
-# If Image Uploaded
+# IF IMAGE UPLOADED
 # ============================================
 
 if uploaded_file is not None:
 
-    # PIL image
     image = Image.open(uploaded_file)
 
-    # Convert to numpy
     image_np = np.array(image)
 
     # ============================================
-    # Create Columns
+    # PREDICTION
+    # ============================================
+
+    with st.spinner("Detecting Rice Objects..."):
+
+        results = model.predict(
+            source=image_np,
+            conf=0.25
+        )
+
+    # ============================================
+    # ANNOTATED IMAGE
+    # ============================================
+
+    annotated_frame = results[0].plot()
+
+    annotated_frame = cv2.cvtColor(
+        annotated_frame,
+        cv2.COLOR_BGR2RGB
+    )
+
+    # ============================================
+    # IMAGE COLUMNS
     # ============================================
 
     col1, col2 = st.columns(2)
-
-    # ============================================
-    # Original Image
-    # ============================================
 
     with col1:
 
         st.subheader("Original Image")
 
         st.image(
-
             image,
-
             use_container_width=True
-
         )
-
-    # ============================================
-    # YOLO Prediction
-    # ============================================
-
-    with st.spinner("Detecting Rice Objects..."):
-
-        results = model.predict(
-
-            source=image_np,
-
-            conf=0.25
-
-        )
-
-    # ============================================
-    # Annotated Image
-    # ============================================
-
-    annotated_frame = results[0].plot()
-
-    annotated_frame = cv2.cvtColor(
-
-        annotated_frame,
-
-        cv2.COLOR_BGR2RGB
-
-    )
-
-    # ============================================
-    # Show Prediction Image
-    # ============================================
 
     with col2:
 
-        st.subheader("Detection Result")
+        st.subheader("Detected Image")
 
         st.image(
-
             annotated_frame,
-
             use_container_width=True
-
         )
 
     # ============================================
-    # Counting Classes
+    # COUNTING
     # ============================================
 
     class_names = model.names
@@ -238,46 +203,126 @@ if uploaded_file is not None:
 
     counts = Counter(detected_classes)
 
+    total_objects = sum(counts.values())
+
     # ============================================
-    # Results Section
+    # COLOR MAPPING
+    # ============================================
+
+    color_map = {
+
+        "Head rice": "#6DFF8B",
+        "Broken rice": "#4D96FF",
+        "Damaged rice": "#FFC857",
+        "Red rice": "#FF914D",
+        "Unhulled rice": "#B980FF",
+        "Foreign objects": "#FF4B4B"
+
+    }
+
+    # ============================================
+    # METRICS
     # ============================================
 
     st.write("")
-
     st.subheader("📊 Detection Summary")
 
-    total_objects = sum(counts.values())
+    metric_cols = st.columns(len(counts) + 1)
 
-    st.success(f"Total Objects Detected: {total_objects}")
-
-    # ============================================
-    # Metrics
-    # ============================================
-
-    cols = st.columns(len(counts))
+    metric_cols[0].markdown(f"""
+    <div class="metric-card">
+        <div class="metric-title">Total Grains</div>
+        <div class="metric-value" style="color:#7CFFB2;">{total_objects}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     for i, (cls, count) in enumerate(counts.items()):
 
-        cols[i].metric(
+        color = color_map.get(cls, "#FFFFFF")
 
-            label=cls,
-
-            value=count
-
-        )
+        metric_cols[i + 1].markdown(f"""
+        <div class="metric-card">
+            <div class="metric-title">{cls}</div>
+            <div class="metric-value" style="color:{color};">{count}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # ============================================
-    # Footer
+    # PIE CHART
+    # ============================================
+
+    st.write("")
+    st.subheader("🌾 Rice Composition")
+
+    labels = list(counts.keys())
+
+    values = list(counts.values())
+
+    colors = [color_map.get(label, "#FFFFFF") for label in labels]
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    wedges, texts, autotexts = ax.pie(
+
+        values,
+
+        labels=None,
+
+        colors=colors,
+
+        autopct=lambda pct: f"{int(round(pct/100.*sum(values)))}",
+
+        startangle=90,
+
+        textprops={'color': "white", 'fontsize': 16}
+
+    )
+
+    ax.legend(
+
+        wedges,
+
+        labels,
+
+        title="Rice Types",
+
+        loc="center left",
+
+        bbox_to_anchor=(1, 0.5),
+
+        fontsize=14,
+
+        labelcolor="white"
+
+    )
+
+    fig.patch.set_facecolor('#0B1120')
+
+    ax.set_facecolor('#0B1120')
+
+    st.pyplot(fig)
+
+    # ============================================
+    # QUALITY INSIGHT
     # ============================================
 
     st.write("")
 
-    st.markdown("---")
+    st.markdown(f"""
+    <div class="footer-box">
 
-    st.markdown(
+    <h3 style="color:#7CFFB2;">
+    ✅ Quality Insight
+    </h3>
 
-        "<center>Built with YOLOv8 + Streamlit</center>",
+    <p style="font-size:20px;">
 
-        unsafe_allow_html=True
+    Higher <b>Head Rice</b> generally indicates better quality rice.
 
-    )
+    Large amounts of <b>Foreign Objects</b>, <b>Broken Rice</b>,
+    or <b>Damaged Rice</b> may indicate lower quality.
+
+    </p>
+
+    </div>
+    """, unsafe_allow_html=True)
