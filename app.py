@@ -145,7 +145,7 @@ if uploaded_file is not None:
 
         results = model.predict(
             source=image_np,
-            conf=0.40
+            conf=0.25
         )
 
     # ============================================
